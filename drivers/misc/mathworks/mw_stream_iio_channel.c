@@ -308,6 +308,7 @@ static int devm_mw_stream_configure_buffer(struct iio_dev *indio_dev)
 	struct iio_buffer *buffer;
 	int status;
 
+        dev_info(&indio_dev->dev, "Create stream name: %s\n", mwchan->dmaname);
 	buffer = iio_dmaengine_buffer_alloc(indio_dev->dev.parent, mwchan->dmaname,
 			&mw_stream_iio_buffer_dma_buffer_ops, indio_dev);
 	if (IS_ERR(buffer)) {
