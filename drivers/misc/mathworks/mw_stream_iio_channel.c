@@ -92,13 +92,13 @@ static int mw_stream_iio_buffer_preenable(struct iio_dev *indio_dev)
 {
 	struct mw_stream_iio_chandev *mwchan = iio_priv(indio_dev);
 
-	dev_dbg(&mwchan->dev, "buffer preenable\n");
+	dev_dbg(&mwchan->dev, "Buffer preenable\n");
 
 	switch(mwchan->reset_ip_mode) {
 		case MW_STREAM_RESET_IP_MODE_ENABLE:
 		case MW_STREAM_RESET_IP_MODE_ALL:
 			/* reset the ip core */
-			dev_dbg(&mwchan->dev, "resetting IP Core\n");
+			dev_dbg(&mwchan->dev, "Resetting IP Core from reset mode\n");
 			mw_ip_reset(mwchan->mwdev);
 			break;
 		default:
@@ -107,11 +107,13 @@ static int mw_stream_iio_buffer_preenable(struct iio_dev *indio_dev)
 	}
 	if (mwchan->tlast_cntr_addr >= 0 && mwchan->tlast_mode == MW_STREAM_TLAST_MODE_AUTO) {
 		if(mwchan->reset_tlast_mode == MW_STREAM_TLAST_MODE_PREBUFFER) {
-			/* reset the IP core (TODO: only reset the TLAST register)*/
-			mw_ip_reset(mwchan->mwdev);
+			/* reset only the TLAST register*/
+                        dev_dbg(&mwchan->dev, "Resetting TLAST register from tlast mode\n");
+                        mw_ip_write32(mwchan->mwdev->mw_ip_info, mwchan->tlast_cntr_addr, 0x0);
 		}
 		/* Set the TLAST count */
 		mw_ip_write32(mwchan->mwdev->mw_ip_info, mwchan->tlast_cntr_addr, indio_dev->buffer->length);
+                dev_info(&mwchan->dev, "Set TLAST counter to %d, address %#02x \n", indio_dev->buffer->length,mwchan->tlast_cntr_addr);
 	}
 
 	return 0;
@@ -120,7 +122,7 @@ static int mw_stream_iio_buffer_postenable(struct iio_dev *indio_dev)
 {
 	struct mw_stream_iio_chandev *mwchan = iio_priv(indio_dev);
 
-	dev_dbg(&mwchan->dev, "buffer postenable\n");
+	dev_dbg(&mwchan->dev, "Buffer postenable\n");
 	return 0;
 }
 
@@ -128,7 +130,7 @@ static int mw_stream_iio_buffer_predisable(struct iio_dev *indio_dev)
 {
 	struct mw_stream_iio_chandev *mwchan = iio_priv(indio_dev);
 
-	dev_dbg(&mwchan->dev, "buffer predisable\n");
+	dev_dbg(&mwchan->dev, "Buffer predisable\n");
 
 	switch(mwchan->reset_ip_mode) {
 		case MW_STREAM_RESET_IP_MODE_DISABLE:
@@ -150,7 +152,7 @@ static int mw_stream_iio_buffer_postdisable(struct iio_dev *indio_dev)
 {
 	struct mw_stream_iio_chandev *mwchan = iio_priv(indio_dev);
 
-	dev_dbg(&mwchan->dev, "buffer postdisable\n");
+	dev_dbg(&mwchan->dev, "Buffer postdisable\n");
 	return 0;
 }
 
@@ -253,6 +255,7 @@ static int mw_stream_iio_channel_set_tlast_mode(struct iio_dev *indio_dev,
 	mutex_lock(&indio_dev->mlock);
 	mwchan->tlast_mode = mode;
 	mutex_unlock(&indio_dev->mlock);
+	dev_dbg(&mwchan->dev, "TLAST mode set to 0x%x\n", mode);
 
 	return 0;
 }
@@ -322,6 +325,7 @@ static int devm_mw_stream_configure_buffer(struct iio_dev *indio_dev)
 	status = devm_add_action(indio_dev->dev.parent,(devm_action_fn)iio_dmaengine_buffer_free, buffer);
 	if(status){
 		iio_dmaengine_buffer_free(buffer);
+                dev_dbg(&indio_dev->dev, "DMA buffer freed\n");
 		return status;
 	}
 
