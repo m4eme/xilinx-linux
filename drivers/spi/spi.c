@@ -2510,7 +2510,10 @@ int spi_setup(struct spi_device *spi)
 
 	status = __spi_validate_bits_per_word(spi->master, spi->bits_per_word);
 	if (status)
+	{
+		dev_warn(&spi->dev, "Fucked up at validate_bits_per_word\n");
 		return status;
+	}
 
 	if (!spi->max_speed_hz)
 		spi->max_speed_hz = spi->master->max_speed_hz;
@@ -2528,7 +2531,7 @@ int spi_setup(struct spi_device *spi)
 			(spi->mode & SPI_LOOP) ? "loopback, " : "",
 			spi->bits_per_word, spi->max_speed_hz,
 			status);
-
+	dev_info(&spi->dev, "Got all the way to the end\n");
 	return status;
 }
 EXPORT_SYMBOL_GPL(spi_setup);
