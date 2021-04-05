@@ -546,7 +546,6 @@ int st_sensors_check_device_support(struct iio_dev *indio_dev,
 	int i, n, err = 0;
 	u8 wai;
 	struct st_sensor_data *sdata = iio_priv(indio_dev);
-
 	for (i = 0; i < num_sensors_list; i++) {
 		for (n = 0; n < ST_SENSORS_MAX_4WAI; n++) {
 			if (strcmp(indio_dev->name,
@@ -564,6 +563,7 @@ int st_sensors_check_device_support(struct iio_dev *indio_dev,
 	}
 
 	if (sensor_settings[i].wai_addr) {
+//		dev_dbg(&sdata->dev,"Transfer function points to device %s\n",dev_name(&sdata->dev));
 		err = sdata->tf->read_byte(&sdata->tb, sdata->dev,
 					   sensor_settings[i].wai_addr, &wai);
 		if (err < 0) {

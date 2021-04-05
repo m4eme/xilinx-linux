@@ -25,4 +25,6 @@ obj-$(CONFIG_DEV_COREDUMP) += devcoredump.o
 obj-$(CONFIG_GENERIC_MSI_IRQ_DOMAIN) += platform-msi.o
 
 ccflags-$(CONFIG_DEBUG_DRIVER) := -DDEBUG
+CFLAGS_core.o := -DDEBUG
+CFLAGS_bus.o := -DDEBUG
 

@@ -14,7 +14,7 @@
 #include <linux/types.h>
 #include <linux/iio/common/st_sensors.h>
 
-#define L3G4200D_GYRO_DEV_NAME		"l3g4200d"
+#define L3G4200D_GYRO_DEV_NAME		"l3g4200d-gyro"
 #define LSM330D_GYRO_DEV_NAME		"lsm330d_gyro"
 #define LSM330DL_GYRO_DEV_NAME		"lsm330dl_gyro"
 #define LSM330DLC_GYRO_DEV_NAME		"lsm330dlc_gyro"

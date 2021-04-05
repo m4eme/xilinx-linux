@@ -3,6 +3,7 @@
 #
 
 ccflags-$(CONFIG_SPI_DEBUG) := -DDEBUG
+CFLAGS_spidev.o := -DVERBOSE
 
 # small core, mostly translating board-specific
 # config declarations into driver model code

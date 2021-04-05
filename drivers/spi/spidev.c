@@ -233,6 +233,7 @@ static int spidev_message(struct spidev_data *spidev,
 	for (n = n_xfers, k_tmp = k_xfers, u_tmp = u_xfers;
 			n;
 			n--, k_tmp++, u_tmp++) {
+	dev_dbg(&spidev->spi->dev,"Outstanding transfers %d, next xfer size %d\n", n, u_tmp->len);
 		k_tmp->len = u_tmp->len;
 
 		total += k_tmp->len;
@@ -243,6 +244,7 @@ static int spidev_message(struct spidev_data *spidev,
 		 */
 		if (total > INT_MAX || k_tmp->len > INT_MAX) {
 			status = -EMSGSIZE;
+			dev_dbg(&spidev->spi->dev, "Failed MSG size");
 			goto done;
 		}
 
@@ -251,13 +253,16 @@ static int spidev_message(struct spidev_data *spidev,
 			rx_total += k_tmp->len;
 			if (rx_total > bufsiz) {
 				status = -EMSGSIZE;
+				dev_dbg(&spidev->spi->dev, "Failed rxbuf size");
 				goto done;
 			}
 			k_tmp->rx_buf = rx_buf;
 			if (!access_ok(VERIFY_WRITE, (u8 __user *)
 						(uintptr_t) u_tmp->rx_buf,
-						u_tmp->len))
+						u_tmp->len)){
+				dev_dbg(&spidev->spi->dev, "Failed access ok");
 				goto done;
+			}
 			rx_buf += k_tmp->len;
 		}
 		if (u_tmp->tx_buf) {
@@ -265,13 +270,16 @@ static int spidev_message(struct spidev_data *spidev,
 			tx_total += k_tmp->len;
 			if (tx_total > bufsiz) {
 				status = -EMSGSIZE;
+				dev_dbg(&spidev->spi->dev, "Failed txbuf size");
 				goto done;
 			}
 			k_tmp->tx_buf = tx_buf;
 			if (copy_from_user(tx_buf, (const u8 __user *)
 						(uintptr_t) u_tmp->tx_buf,
-					u_tmp->len))
+					u_tmp->len)){
+				dev_dbg(&spidev->spi->dev, "Failed txbuf copy");
 				goto done;
+			}
 			tx_buf += k_tmp->len;
 		}
 
@@ -283,7 +291,7 @@ static int spidev_message(struct spidev_data *spidev,
 		k_tmp->speed_hz = u_tmp->speed_hz;
 		if (!k_tmp->speed_hz)
 			k_tmp->speed_hz = spidev->speed_hz;
-#ifdef VERBOSE
+//#ifdef VERBOSE
 		dev_dbg(&spidev->spi->dev,
 			"  xfer len %u %s%s%s%dbits %u usec %uHz\n",
 			u_tmp->len,
@@ -293,7 +301,7 @@ static int spidev_message(struct spidev_data *spidev,
 			u_tmp->bits_per_word ? : spidev->spi->bits_per_word,
 			u_tmp->delay_usecs,
 			u_tmp->speed_hz ? : spidev->spi->max_speed_hz);
-#endif
+//#endif
 		spi_message_add_tail(k_tmp, &msg);
 	}
 

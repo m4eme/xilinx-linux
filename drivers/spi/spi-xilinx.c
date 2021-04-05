@@ -70,9 +70,9 @@
 #define XIPIF_V123B_RESET_MASK		0x0a
 
 /* Number of bits per word */
-#define XSPI_ONE_BITS_PER_WORD 1
-#define XSPI_TWO_BITS_PER_WORD 2
-#define XSPI_FOUR_BITS_PER_WORD 4
+#define XSPI_ONE_BYTE_PER_WORD 1
+#define XSPI_TWO_BYTES_PER_WORD 2
+#define XSPI_FOUR_BYTES_PER_WORD 4
 
 /* Number of data lines used to receive */
 #define XSPI_RX_ONE_WIRE	1
@@ -161,9 +161,12 @@ static void xspi_fill_tx_fifo_##size(struct xilinx_spi *xqspi)		\
 	int count = (xqspi->bytes_to_transfer > xqspi->buffer_size) ?	\
 			xqspi->buffer_size : xqspi->bytes_to_transfer;	\
 	u32 data = 0;							\
+	u8  *ptr = NULL;\
 	for (i = 0; i < count; i += (size/8)) {				\
-		if (xqspi->tx_ptr)					\
-			data = (type)((u8 *)xqspi->tx_ptr)[i];		\
+		if (xqspi->tx_ptr){					\
+			ptr = ((u8 *) xqspi->tx_ptr) + i;\
+			data = *((type *) ptr);\
+		}\
 		writel_relaxed(data, (xqspi->regs + XSPI_TXD_OFFSET));	\
 	}								\
 	xqspi->bytes_to_transfer -= count;				\
@@ -379,14 +382,15 @@ static int xspi_setup(struct spi_device *qspi)
 
 	if (qspi->master->busy)
 		return -EBUSY;
-
+#if 0
 	ret = pm_runtime_get_sync(&qspi->dev);
 	if (ret < 0)
 		return ret;
-
+#endif
 	ret = xspi_setup_transfer(qspi, NULL);
+#if 0
 	pm_runtime_put_sync(&qspi->dev);
-
+#endif
 	return ret;
 }
 
@@ -410,9 +414,12 @@ static int xspi_start_transfer(struct spi_master *master,
 {
 	struct xilinx_spi *xqspi = spi_master_get_devdata(master);
 	u32 cr;
-
 	xqspi->tx_ptr = transfer->tx_buf;
 	xqspi->rx_ptr = transfer->rx_buf;
+	dev_dbg(&master->dev, "At start of transfer: transfer length %d\n", transfer->len);
+	dev_dbg(&master->dev, "At start of transfer: transfer buffer %#010x\n", *((uint8_t*) transfer->tx_buf));
+	dev_dbg(&master->dev, "At start of transfer: tx buffer ptr %p\n", xqspi->tx_ptr);
+	dev_dbg(&master->dev, "At start of transfer: rx buffer ptr %p\n", xqspi->rx_ptr);
 
 	if (transfer->dummy) {
 		xqspi->bytes_to_transfer = (transfer->len - (transfer->dummy/8))
@@ -455,11 +462,11 @@ static int xspi_prepare_transfer_hardware(struct spi_master *master)
 	struct xilinx_spi *xqspi = spi_master_get_devdata(master);
 	u32 cr;
 	int ret;
-
+#if 0
 	ret = pm_runtime_get_sync(&master->dev);
 	if (ret < 0)
 		return ret;
-
+#endif
 	cr = xqspi->read_fn(xqspi->regs + XSPI_CR_OFFSET);
 	cr |= XSPI_CR_ENABLE;
 	xqspi->write_fn(cr, xqspi->regs + XSPI_CR_OFFSET);
@@ -484,9 +491,9 @@ static int xspi_unprepare_transfer_hardware(struct spi_master *master)
 	cr = xqspi->read_fn(xqspi->regs + XSPI_CR_OFFSET);
 	cr &= ~XSPI_CR_ENABLE;
 	xqspi->write_fn(cr, xqspi->regs + XSPI_CR_OFFSET);
-
+#if 0
 	pm_runtime_put_sync(&master->dev);
-
+#endif
 	return 0;
 }
 
@@ -566,13 +573,13 @@ static int __maybe_unused xilinx_spi_resume(struct device *dev)
 	struct spi_master *master = dev_get_drvdata(dev);
 	struct xilinx_spi *xspi = spi_master_get_devdata(master);
 	int ret = 0;
-
+#if 0
 	if (!pm_runtime_suspended(dev)) {
 		ret = xilinx_spi_runtime_resume(dev);
 		if (ret < 0)
 			return ret;
 	}
-
+#endif
 	ret = spi_master_resume(master);
 	if (ret < 0) {
 		clk_disable(xspi->axi_clk);
@@ -600,10 +607,10 @@ static int __maybe_unused xilinx_spi_suspend(struct device *dev)
 	ret = spi_master_suspend(master);
 	if (ret)
 		return ret;
-
+#if 0
 	if (!pm_runtime_suspended(dev))
 		xilinx_spi_runtime_suspend(dev);
-
+#endif
 	xspi_unprepare_transfer_hardware(master);
 
 	return ret;
@@ -632,6 +639,8 @@ static int xilinx_spi_probe(struct platform_device *pdev)
 	struct device_node *nc;
 	u32 tmp, rx_bus_width, fifo_size;
 
+	dev_info(&pdev->dev, "Entering Xilinx probe function\n");
+
 	of_property_read_u32(pdev->dev.of_node, "num-cs",
 				&num_cs);
 	if (!num_cs)
@@ -642,6 +651,7 @@ static int xilinx_spi_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
+	dev_info(&pdev->dev, "Allocate Master\n");
 	master = spi_alloc_master(&pdev->dev, sizeof(struct xilinx_spi));
 	if (!master)
 		return -ENODEV;
@@ -666,7 +676,7 @@ static int xilinx_spi_probe(struct platform_device *pdev)
 	of_property_read_u32(pdev->dev.of_node, "bits-per-word",
 				&bits_per_word);
 
-	xspi->rx_bus_width = XSPI_ONE_BITS_PER_WORD;
+	xspi->rx_bus_width = XSPI_ONE_BYTE_PER_WORD;
 	for_each_available_child_of_node(pdev->dev.of_node, nc) {
 		ret = of_property_read_u32(nc, "spi-rx-bus-width",
 						&rx_bus_width);
@@ -736,12 +746,14 @@ static int xilinx_spi_probe(struct platform_device *pdev)
 		goto clk_unprepare_axi4_clk;
 	}
 
+#if 0
 	pm_runtime_set_autosuspend_delay(&pdev->dev, SPI_AUTOSUSPEND_TIMEOUT);
 	pm_runtime_use_autosuspend(&pdev->dev);
 	pm_runtime_enable(&pdev->dev);
 	ret = pm_runtime_get_sync(&pdev->dev);
 	if (ret < 0)
 		goto clk_unprepare_all;
+#endif
 
 	xspi->read_fn = xspi_read32;
 	xspi->write_fn = xspi_write32;
@@ -769,9 +781,9 @@ static int xilinx_spi_probe(struct platform_device *pdev)
 
 	/* SPI controller initializations */
 	xspi_init_hw(xspi);
-
+#if 0
 	pm_runtime_put(&pdev->dev);
-
+#endif
 	master->bus_num = pdev->id;
 	master->num_chipselect = num_cs;
 	master->setup = xspi_setup;
@@ -779,17 +791,31 @@ static int xilinx_spi_probe(struct platform_device *pdev)
 	master->transfer_one = xspi_start_transfer;
 	master->prepare_transfer_hardware = xspi_prepare_transfer_hardware;
 	master->unprepare_transfer_hardware = xspi_unprepare_transfer_hardware;
-	master->bits_per_word_mask = SPI_BPW_MASK(8);
+	master->bits_per_word_mask = SPI_BPW_RANGE_MASK(8, 32);
 	master->mode_bits = SPI_CPOL | SPI_CPHA | SPI_CS_HIGH;
 
 	xspi->bytes_per_word = bits_per_word / 8;
+	/*switch (xspi->bytes_per_word) {
+		case XSPI_TWO_BYTES_PER_WORD:
+			xpsi->tx_fifo = XSPI_FIFO_WRITE(16, u16);
+			xpsi->tx_fifo = XSPI_FIFO_READ(16, u16);
+			break;
+		case XSPI_FOUR_BYTES_PER_WORD:
+			xpsi->tx_fifo = XSPI_FIFO_WRITE(16, u16);
+			xpsi->tx_fifo = XSPI_FIFO_READ(16, u16);
+			break;
+		default:
+			xspi->tx_fifo = XSPI_FIFO_WRITE(8, u8);
+			xspi->rx_fifo = XSPI_FIFO_READ(8, u8);
+	}*/
 	xspi->tx_fifo = xspi_fill_tx_fifo_8;
 	xspi->rx_fifo = xspi_read_rx_fifo_8;
+
 	if (xspi->rx_bus_width == XSPI_RX_ONE_WIRE) {
-		if (xspi->bytes_per_word == XSPI_TWO_BITS_PER_WORD) {
+		if (xspi->bytes_per_word == XSPI_TWO_BYTES_PER_WORD) {
 			xspi->tx_fifo = xspi_fill_tx_fifo_16;
 			xspi->rx_fifo = xspi_read_rx_fifo_16;
-		} else if (xspi->bytes_per_word == XSPI_FOUR_BITS_PER_WORD) {
+		} else if (xspi->bytes_per_word == XSPI_FOUR_BYTES_PER_WORD) {
 			xspi->tx_fifo = xspi_fill_tx_fifo_32;
 			xspi->rx_fifo = xspi_read_rx_fifo_32;
 		}
@@ -809,8 +835,10 @@ static int xilinx_spi_probe(struct platform_device *pdev)
 	return ret;
 
 clk_unprepare_all:
+#if 0
 	pm_runtime_disable(&pdev->dev);
 	pm_runtime_set_suspended(&pdev->dev);
+#endif
 	clk_unprepare(xspi->spi_clk);
 clk_unprepare_axi4_clk:
 	clk_unprepare(xspi->axi4_clk);
@@ -842,9 +870,9 @@ static int xilinx_spi_remove(struct platform_device *pdev)
 	xspi->write_fn(0, regs_base + XIPIF_V123B_IIER_OFFSET);
 	/* Disable the global IPIF interrupt */
 	xspi->write_fn(0, regs_base + XIPIF_V123B_DGIER_OFFSET);
-
+#if 0
 	pm_runtime_disable(&pdev->dev);
-
+#endif
 	clk_disable_unprepare(xspi->axi_clk);
 	clk_disable_unprepare(xspi->axi4_clk);
 	clk_disable_unprepare(xspi->spi_clk);
@@ -870,7 +898,7 @@ static struct platform_driver xilinx_spi_driver = {
 	.driver = {
 		.name = XILINX_SPI_NAME,
 		.of_match_table = xilinx_spi_of_match,
-		.pm = &xilinx_spi_dev_pm_ops,
+		//.pm = &xilinx_spi_dev_pm_ops,
 	},
 };
 module_platform_driver(xilinx_spi_driver);

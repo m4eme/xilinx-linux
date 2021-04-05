@@ -18,13 +18,61 @@
 #include <linux/iio/common/st_sensors_spi.h>
 #include "st_gyro.h"
 
+#ifdef CONFIG_OF
+static const struct of_device_id st_gyro_of_match[] = {
+	{
+		.compatible = "st,l3g4200d-gyro",
+		.data = L3G4200D_GYRO_DEV_NAME,
+	},
+	{
+		.compatible = "st,lsm330d-gyro",
+		.data = LSM330D_GYRO_DEV_NAME,
+	},
+	{
+		.compatible = "st,lsm330dl-gyro",
+		.data = LSM330DL_GYRO_DEV_NAME,
+	},
+	{
+		.compatible = "st,lsm330dlc-gyro",
+		.data = LSM330DLC_GYRO_DEV_NAME,
+	},
+	{
+		.compatible = "st,l3gd20-gyro",
+		.data = L3GD20_GYRO_DEV_NAME,
+	},
+	{
+		.compatible = "st,l3gd20h-gyro",
+		.data = L3GD20H_GYRO_DEV_NAME,
+	},
+	{
+		.compatible = "st,l3g4is-gyro",
+		.data = L3G4IS_GYRO_DEV_NAME,
+	},
+	{
+		.compatible = "st,lsm330-gyro",
+		.data = LSM330_GYRO_DEV_NAME,
+	},
+	{
+		.compatible = "st,lsm9ds0-gyro",
+		.data = LSM9DS0_GYRO_DEV_NAME,
+	},
+	{},
+};
+MODULE_DEVICE_TABLE(of, st_gyro_of_match);
+#else
+#define st_gyro_of_match NULL
+#endif
+
+
 static int st_gyro_spi_probe(struct spi_device *spi)
 {
 	struct iio_dev *indio_dev;
 	struct st_sensor_data *gdata;
 	int err;
 
+	pr_warn("Entering ST Gyro SPI probe function with name %s.\n",dev_name(&spi->dev));
 	indio_dev = devm_iio_device_alloc(&spi->dev, sizeof(*gdata));
+	dev_info(&indio_dev->dev,"IIO Dev created with name %s\n",indio_dev->name);
 	if (!indio_dev)
 		return -ENOMEM;
 
@@ -62,6 +110,7 @@ MODULE_DEVICE_TABLE(spi, st_gyro_id_table);
 static struct spi_driver st_gyro_driver = {
 	.driver = {
 		.name = "st-gyro-spi",
+		.of_match_table = of_match_ptr(st_gyro_of_match),
 	},
 	.probe = st_gyro_spi_probe,
 	.remove = st_gyro_spi_remove,

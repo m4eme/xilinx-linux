@@ -30,7 +30,8 @@ static int st_sensors_spi_read(struct st_sensor_transfer_buffer *tb,
 	struct device *dev, u8 reg_addr, int len, u8 *data, bool multiread_bit)
 {
 	int err;
-
+	// This is a hack for Xilinx AXI Quad SPI. We allocate one byte more just to ignore it...
+	u8* rxbuf = (u8*) kmalloc(len+1*sizeof(u8),GFP_USER);
 	struct spi_transfer xfers[] = {
 		{
 			.tx_buf = tb->tx_buf,
@@ -38,9 +39,10 @@ static int st_sensors_spi_read(struct st_sensor_transfer_buffer *tb,
 			.len = 1,
 		},
 		{
-			.rx_buf = tb->rx_buf,
+//			.rx_buf = tb->rx_buf,
+			.rx_buf = rxbuf,
 			.bits_per_word = 8,
-			.len = len,
+			.len = len+1,
 		}
 	};
 
@@ -53,7 +55,10 @@ static int st_sensors_spi_read(struct st_sensor_transfer_buffer *tb,
 	err = spi_sync_transfer(to_spi_device(dev), xfers, ARRAY_SIZE(xfers));
 	if (err)
 		goto acc_spi_read_error;
-
+	pr_info("SPI RX len %d\n",len);
+	pr_info("Data at beginning of buffer is %#03x %#03x\n",*(rxbuf),*(rxbuf+1));
+	memcpy(tb->rx_buf,rxbuf+1,len);
+	kfree(rxbuf);
 	memcpy(data, tb->rx_buf, len);
 	mutex_unlock(&tb->buf_lock);
 	return len;
