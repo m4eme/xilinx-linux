@@ -390,7 +390,6 @@ int __spi_register_driver(struct module *owner, struct spi_driver *sdrv)
 {
 	sdrv->driver.owner = owner;
 	sdrv->driver.bus = &spi_bus_type;
-//	pr_info("Registering SPI driver name: %s mod_name: %s\n",sdrv->driver.name,sdrv->driver.mod_name);
 	if (sdrv->probe)
 		sdrv->driver.probe = spi_drv_probe;
 	if (sdrv->remove)
@@ -504,7 +503,6 @@ int spi_add_device(struct spi_device *spi)
 	struct spi_master *master = spi->master;
 	struct device *dev = master->dev.parent;
 	int status;
-	struct device_driver *drv_ptr = spi->dev.driver;
 
 	/* Chipselects are numbered 0..max; validate. */
 	if (spi->chip_select >= master->num_chipselect) {
@@ -537,15 +535,13 @@ int spi_add_device(struct spi_device *spi)
 	 * normally rely on the device being setup.  Devices
 	 * using SPI_CS_HIGH can't coexist well otherwise...
 	 */
-	dev_dbg(&spi->dev, "Entering spi_setup\n");
 	status = spi_setup(spi);
 	if (status < 0) {
 		dev_err(dev, "can't setup %s, status %d\n",
 				dev_name(&spi->dev), status);
 		goto done;
 	}
-	dev_dbg(&spi->dev, "Entering device_add for %s driver %s\n",dev_name(&spi->dev),
-			(drv_ptr != NULL) ? drv_ptr->name : "NULL");
+
 	/* Device may be bound to an active driver when this returns */
 	status = device_add(&spi->dev);
 	if (status < 0)
@@ -597,7 +593,6 @@ struct spi_device *spi_new_device(struct spi_master *master,
 	proxy->max_speed_hz = chip->max_speed_hz;
 	proxy->mode = chip->mode;
 	proxy->irq = chip->irq;
-	dev_dbg(&proxy->dev,"Modalias when creating new device is %s\n", chip->modalias);
 	strlcpy(proxy->modalias, chip->modalias, sizeof(proxy->modalias));
 	proxy->dev.platform_data = (void *) chip->platform_data;
 	proxy->controller_data = chip->controller_data;
@@ -2441,7 +2436,6 @@ EXPORT_SYMBOL_GPL(spi_split_transfers_maxsize);
 
 static int __spi_validate_bits_per_word(struct spi_master *master, u8 bits_per_word)
 {
-//	dev_dbg(&master->dev,"Bits per word validation mask is %0x bits_per_word is %d\n", master->bits_per_word_mask, bits_per_word);
 	if (master->bits_per_word_mask) {
 		/* Only 32 bits fit in the mask */
 		if (bits_per_word > 32)
@@ -2450,6 +2444,7 @@ static int __spi_validate_bits_per_word(struct spi_master *master, u8 bits_per_w
 				SPI_BPW_MASK(bits_per_word)))
 			return -EINVAL;
 	}
+
 	return 0;
 }
 
@@ -2515,7 +2510,10 @@ int spi_setup(struct spi_device *spi)
 
 	status = __spi_validate_bits_per_word(spi->master, spi->bits_per_word);
 	if (status)
+	{
+		dev_warn(&spi->dev, "Fucked up at validate_bits_per_word\n");
 		return status;
+	}
 
 	if (!spi->max_speed_hz)
 		spi->max_speed_hz = spi->master->max_speed_hz;
@@ -2533,6 +2531,7 @@ int spi_setup(struct spi_device *spi)
 			(spi->mode & SPI_LOOP) ? "loopback, " : "",
 			spi->bits_per_word, spi->max_speed_hz,
 			status);
+	dev_info(&spi->dev, "Got all the way to the end\n");
 	return status;
 }
 EXPORT_SYMBOL_GPL(spi_setup);

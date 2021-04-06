@@ -422,7 +422,6 @@ int st_gyro_common_probe(struct iio_dev *indio_dev)
 	int irq = gdata->get_irq_data_ready(indio_dev);
 	int err;
 
-	dev_info(&indio_dev->dev, "Entering st_gyro_common_probe\n");
 	indio_dev->modes = INDIO_DIRECT_MODE;
 	indio_dev->info = &gyro_info;
 	mutex_init(&gdata->tb.buf_lock);
@@ -430,7 +429,6 @@ int st_gyro_common_probe(struct iio_dev *indio_dev)
 	err = st_sensors_power_enable(indio_dev);
 	if (err)
 		return err;
-	dev_info(&indio_dev->dev, "Power Enable done\n");
 
 	err = st_sensors_check_device_support(indio_dev,
 					ARRAY_SIZE(st_gyro_sensors_settings),
@@ -451,7 +449,6 @@ int st_gyro_common_probe(struct iio_dev *indio_dev)
 				(struct st_sensors_platform_data *)&gyro_pdata);
 	if (err < 0)
 		goto st_gyro_power_off;
-	dev_info(&indio_dev->dev, "Sensors init'd\n");
 
 	err = st_gyro_allocate_ring(indio_dev);
 	if (err < 0)
@@ -464,7 +461,6 @@ int st_gyro_common_probe(struct iio_dev *indio_dev)
 			goto st_gyro_probe_trigger_error;
 	}
 
-	dev_info(&indio_dev->dev, "About to register IIO device\n");
 	err = iio_device_register(indio_dev);
 	if (err)
 		goto st_gyro_device_register_error;
