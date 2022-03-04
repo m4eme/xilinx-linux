@@ -55,9 +55,9 @@ static int st_sensors_spi_read(struct st_sensor_transfer_buffer *tb,
 	err = spi_sync_transfer(to_spi_device(dev), xfers, ARRAY_SIZE(xfers));
 	if (err)
 		goto acc_spi_read_error;
-	pr_info("SPI RX len %d\n",len);
-	pr_info("Data at beginning of buffer is %#03x %#03x\n",*(rxbuf),*(rxbuf+1));
-	memcpy(tb->rx_buf,rxbuf+1,len);
+	//pr_info("SPI read on addr %#03x, length %d\n",reg_addr,len);
+	//pr_info("Data at beginning of buffer is %#03x %#03x\n",*(rxbuf),*(rxbuf+1));
+	memcpy(tb->rx_buf,rxbuf,len);
 	kfree(rxbuf);
 	memcpy(data, tb->rx_buf, len);
 	mutex_unlock(&tb->buf_lock);
