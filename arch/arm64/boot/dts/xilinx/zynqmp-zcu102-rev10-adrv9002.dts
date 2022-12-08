@@ -39,7 +39,7 @@
 			reg = <0x84A30000 0x10000>;
 			#dma-cells = <1>;
 			interrupts = <0 109 IRQ_TYPE_LEVEL_HIGH>;
-			clocks = <&zynqmp_clk 71>;
+			clocks = <&clkc 71>;
 
 			adi,channels {
 				#size-cells = <0>;
@@ -60,10 +60,10 @@
 			reg = <0x84A40000 0x10000>;
 			#dma-cells = <1>;
 			interrupts = <0 108 IRQ_TYPE_LEVEL_HIGH>;
-			clocks = <&zynqmp_clk 71>;
+			clocks = <&clkc 71>;
 
 			adi,channels {
-				#size-cells = <0>;
+				size-cells = <0>;
 				#address-cells	 = <1>;
 
 				dma-channel@0 {
@@ -81,7 +81,7 @@
 			reg = <0x84A50000 0x10000>;
 			#dma-cells = <1>;
 			interrupts = <0 105 IRQ_TYPE_LEVEL_HIGH>;
-			clocks = <&zynqmp_clk 71>;
+			clocks = <&clkc 71>;
 
 			adi,channels {
 				#size-cells = <0>;
@@ -102,7 +102,7 @@
 			reg = <0x84A60000 0x10000>;
 			#dma-cells = <1>;
 			interrupts = <0 106 IRQ_TYPE_LEVEL_HIGH>;
-			clocks = <&zynqmp_clk 71>;
+			clocks = <&clkc 71>;
 
 			adi,channels {
 				#size-cells = <0>;
@@ -141,7 +141,7 @@
 		axi_adrv9002_core_tdd1: axi-adrv9002-core-tdd1-lpc@44A0C800 {
 			compatible = "adi,axi-tdd-1.00";
 			reg = <0x84A0C800 0x400>;
-			clocks = <&zynqmp_clk 71>, <&adc0_adrv9002 2>;
+			clocks = <&clkc 71>, <&adc0_adrv9002 2>;
 			clock-names = "s_axi_aclk", "intf_clk";
 			label = "axi-core-tdd-1";
 		};
@@ -169,7 +169,7 @@
 		axi_adrv9002_core_tdd2: axi-adrv9002-core-tdd2-lpc@44A0C800 {
 			compatible = "adi,axi-tdd-1.00";
 			reg = <0x84A0CC00 0x400>;
-			clocks = <&zynqmp_clk 71>, <&adc0_adrv9002 5>;
+			clocks = <&clkc 71>, <&adc0_adrv9002 5>;
 			clock-names = "s_axi_aclk", "intf_clk";
 			label = "axi-core-tdd-2";
 		};
