@@ -505,7 +505,6 @@ static int ina260_probe(struct i2c_client *client, const struct i2c_device_id *i
 	indio_dev->name = id->name;
 
 	ret = devm_iio_kfifo_buffer_setup(&indio_dev->dev, indio_dev,
-					  INDIO_BUFFER_SOFTWARE,
 					  &ina260_setup_ops);
 	if (ret)
 		return ret;
